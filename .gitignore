@@ -1,0 +1,13 @@
+# MSVC 
+readme/
+
+# Make outputs
+.build/
+bin/
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+/.vscode/**
