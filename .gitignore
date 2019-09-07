@@ -3,6 +3,7 @@ readme/
 
 # Make outputs
 .build/
+build/
 bin/
 *.log
 

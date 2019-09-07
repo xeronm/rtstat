@@ -83,16 +83,14 @@ void P2::add(double val)
     printf("stage_B: id=%d h=%f (val=%f)\n", k_index, K->height(), val);
 
     if (K == markers_.begin()) {
-        markers_.front().height = val;
+        markers_.front().setHeight(val);
     }
     else if (K == markers_.end()) {
-        markers_.back().height = val;
+        markers_.back().setHeight(val);
     }
 
+/*
     size_t i = 1;
-    double q_left, n_left = markers_.at(0).position(), markers_.at(0).position();
-
-    double q_center = 
     Marker left = markers_.at(0);
     Marker center = markers_.at(1);
     for (std::vector<Marker>::iterator it=markers_.begin() + 2; it!=markers_.end(); ++it, ++i) {
@@ -108,6 +106,7 @@ void P2::add(double val)
         center = right;
     }
     center.incPosition(true);
+    */
 };    
 
 }
