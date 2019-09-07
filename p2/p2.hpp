@@ -24,6 +24,7 @@ SOFTWARE.
 
 #pragma once
 
+#include <stdio.h>
 #include <vector>
 
 namespace rtstat
@@ -32,72 +33,46 @@ namespace rtstat
 class P2
 {
 public:
+    explicit P2(std::vector<double> quantiles)
+        : quantiles_(std::vector<double>(quantiles))
+    {
+        std:sort(quantiles_.begin(), quantiles_.end());
+        qcount_ = quantiles.size();
+        marker_count_ = qcount_*2 + 3;
+        valuesLeftForInit_ = marker_count_;
+        markers_ = std::vector<Marker>(marker_count_);
+    };
+
+    void add(double val);
+    const bool valid(); // return true if estimation is valid
+    const double quantile(uint8_t qindex);
+    const double min();
+    const double max();
+    const double count(); // observations count
+
+    void describe(FILE * f);
+private:
     class Marker
     {
     public:
         explicit Marker()
-            : position_(0.0), height_(0.0), increment_(0.0), desiredPosition_(0.0) {};
+            : position(0.0), height(0.0), increment(0.0), desiredPosition(0.0) {};
 
-        inline double height() const
-        {
-            return height_;
-        }
+        inline void init(); // Stage A
+        inline void incrementPositions(bool actual); // Stage B.3        
+        inline void adjust(Marker& prev, Marker& next); // Stage B.4
 
-        inline double position() const
-        {
-            return position_;
-        }
-
-        inline void setHeight(double height)
-        {
-            height_ = height;
-        }
-
-        inline double desiredPosition() const
-        {
-            return desiredPosition_;
-        }
-
-        inline void setPosition(double position)
-        {
-            position_ = position;
-        }
-
-        inline void incPosition(bool is_actual)
-        {
-            if (is_actual) ++position_;
-            desiredPosition_ += increment_;
-        }
-
-        inline void init(double position, double increment, double desiredPosition)
-        {
-            position_ = position;
-            increment_ = increment;
-            desiredPosition_ = desiredPosition;
-        }
-
-    private:
-        double height_; // Qi
-        double position_; // Ni
-        double desiredPosition_; // Di
-        double increment_; // Fi
+        double height; // Estimated quantile value (qi)
+        double position; // Marker position (ni)
+        double desiredPosition; // Desired marker position (di)
+        double increment; // Marker position increment (fi)
     };
 
-    explicit P2(std::vector<double> quantiles)
-        : quantiles_(std::vector<double>(quantiles))
-    {
-        qcount_ = quantiles.size();
-        valuesLeftForInit_ = qcount_*2 + 3;
-        markers_ = std::vector<Marker>(valuesLeftForInit_);
-        printf("created  q:%d, m:%d\n", quantiles_.size(), markers_.size());
-    };
-
-    void add(double val);
-private:
     std::vector<Marker> markers_;
     std::vector<double> quantiles_;
-    size_t valuesLeftForInit_;
-    size_t qcount_;
+    size_t valuesLeftForInit_; // Observation values left for initialization
+    uint8_t qcount_; // Quantiles count for estimate
+    uint8_t marker_count_; // Markers count
 
     void initialize();
 };
