@@ -57,7 +57,7 @@ void run_perf_test_p2(std::vector<double> set, std::vector<double> quantiles, do
     std::chrono::duration<double> diff = end - start;
     std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
     *time_stat = per_ns.count();
-    printf("time spent (sec): %f, peritem (ns): %d\n", diff, per_ns);
+    printf("time spent (sec): %f, peritem (ns): %0.2f\n", diff, per_ns);
 
     //p2.describe(stdout);
     printf("=============\n");
@@ -80,7 +80,7 @@ void run_perf_test_p2(std::vector<double> set, std::vector<double> quantiles, do
 
 void run_perf_test_tdigest(std::vector<double> set, std::vector<double> quantiles, double* msre, double* time_stat) 
 {
-    rtstat::TDigest td(quantiles.size()*4, 200);
+    rtstat::TDigest td(quantiles.size()*5, 200);
 
     printf("== T-digest ===========\n");
 
@@ -92,7 +92,7 @@ void run_perf_test_tdigest(std::vector<double> set, std::vector<double> quantile
     std::chrono::duration<double> diff = end - start;
     std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
     *time_stat = per_ns.count();
-    printf("time spent (sec): %f, peritem (ns): %d\n", diff, per_ns);
+    printf("time spent (sec): %f, peritem (ns): %0.2f\n", diff, per_ns);
 
     //td.describe(stdout);
     printf("=============\n");
