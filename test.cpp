@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2019 <copyright holders>
+Copyright (c) 2019 Denis Muratov <xeronm@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,37 +30,91 @@ SOFTWARE.
 #include <algorithm>
 
 #include "p2/p2.hpp"
+#include "tdigest/tdigest.hpp"
 
-void run_perf_test_p2(std::vector<double> set, std::vector<double> quantiles) 
+class PerfReportItem {
+    public:
+        PerfReportItem(const char* distribution, const char* algorythm, size_t samples, double RMSE, double time_stat)
+            : RMSE_(RMSE), samples_(samples), distribution_(distribution), algorythm_(algorythm), time_stat_(time_stat) {};
+
+        double RMSE_;
+        size_t samples_;
+        std::string distribution_;
+        std::string algorythm_;
+        double time_stat_;
+};
+
+void run_perf_test_p2(std::vector<double> set, std::vector<double> quantiles, double* msre, double* time_stat) 
 {
     rtstat::P2 p2(quantiles);
 
+    printf("== P2 =================\n");
     auto start = std::chrono::high_resolution_clock::now();
     for (std::vector<double>::iterator it=set.begin(); it!=set.end(); ++it) {
         p2.add(*it);
     } 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
-    printf("time spent (sec): %f\n", diff);
+    std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
+    *time_stat = per_ns.count();
+    printf("time spent (sec): %f, peritem (ns): %d\n", diff, per_ns);
 
-    p2.describe(stdout);
+    //p2.describe(stdout);
     printf("=============\n");
 
     std::vector<double> sset(set);
     std::sort(sset.begin(), sset.end());
     double mse = 0;
     printf("   quantile          O        P^2\n");
-    for (std::vector<double>::iterator it=quantiles.begin(); it!=quantiles.end(); ++it) {
+    for (auto it=quantiles.begin(); it!=quantiles.end(); ++it) {
         double qp = p2.quantile(it - quantiles.begin());
         double qo = sset[(size_t) (sset.size()**it)];
         mse += (qp -  qo)*(qp -  qo);
         printf(" %10.4f %10.4f %10.4f\n", *it, qo, qp );
     } 
 
-    printf("RMSE: %f\n", sqrt(mse/quantiles.size()));
+    *msre = mse/quantiles.size();
+    printf("RMSE: %f\n", *msre);
+    printf("== P2 =================\n\n");
 }
 
-void run_perf_test(size_t samples, std::vector<double> quantiles) 
+void run_perf_test_tdigest(std::vector<double> set, std::vector<double> quantiles, double* msre, double* time_stat) 
+{
+    rtstat::TDigest td(quantiles.size()*4, 200);
+
+    printf("== T-digest ===========\n");
+
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto it=set.begin(); it!=set.end(); ++it) {
+        td.add(*it);
+    } 
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = end - start;
+    std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
+    *time_stat = per_ns.count();
+    printf("time spent (sec): %f, peritem (ns): %d\n", diff, per_ns);
+
+    //td.describe(stdout);
+    printf("=============\n");
+
+    std::vector<double> sset(set);
+    std::sort(sset.begin(), sset.end());
+    double mse = 0;
+    printf("   quantile          O   T-digest\n");
+    for (auto it=quantiles.begin(); it!=quantiles.end(); ++it) {
+        double qp = td.quantile(*it);
+        double qo = sset[(size_t) (sset.size()**it)];
+        mse += (qp -  qo)*(qp -  qo);
+        printf(" %10.4f %10.4f %10.4f\n", *it, qo, qp );
+    } 
+
+    *msre = mse/quantiles.size();
+    printf("RMSE: %f\n", *msre);
+
+    printf("== T-digest ===========\n\n");
+}
+
+void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vector<double> quantiles) 
 {
     std::default_random_engine generator(1);
     std::normal_distribution<double> norm(60.0, 10.0);
@@ -71,31 +125,52 @@ void run_perf_test(size_t samples, std::vector<double> quantiles)
     std::vector<double> sample_ln(samples);
     std::generate(sample_ln.begin(), sample_ln.end(), [&lognorm, &generator]() { return lognorm(generator)*10+50; } );
 
+    double rmse;
+    double time_stat;
     printf("\n\n=============\n");
-    printf("Normal distribution: %d samples\n", samples);
-    run_perf_test_p2(sample_n, quantiles);
+    printf("Distribution: Normal\nSamples: %d\n", samples);
+    run_perf_test_p2(sample_n, quantiles, &rmse, &time_stat);
+    report.push_back(PerfReportItem("Normal", "P^2", samples, rmse, time_stat));
+    run_perf_test_tdigest(sample_n, quantiles, &rmse, &time_stat);
+    report.push_back(PerfReportItem("Normal", "T-digest", samples, rmse, time_stat));
+
     printf("=============\n");
-    printf("Log-normal distribution: %d samples\n", samples);
-    run_perf_test_p2(sample_ln, quantiles);
+    printf("Distribution: Log-normal\nSamples: %d\n", samples);
+    run_perf_test_p2(sample_ln, quantiles, &rmse, &time_stat);
+    report.push_back(PerfReportItem("Log-normal", "P^2", samples, rmse, time_stat));
+    run_perf_test_tdigest(sample_ln, quantiles, &rmse, &time_stat);
+    report.push_back(PerfReportItem("Log-normal", "T-digest", samples, rmse, time_stat));
 }
 
 int main (int argc, char *argv[])
 {
-    printf("Hello World!!!\n");
-
-    double Q[] = {0.25, 0.5, 0.75, 0.95, 0.99, 0.999
-        //, 0.9999
-    };
+    double Q[] = {0.25, 0.5, 0.75, 0.95};
     std::vector<double> quantiles(Q, Q + sizeof(Q) / sizeof(double));    
+
+    double Q2[] = {0.25, 0.5, 0.75, 0.95, 0.99};
+    std::vector<double> quantiles2(Q2, Q2 + sizeof(Q2) / sizeof(double));    
+
+    double Q3[] = {0.25, 0.5, 0.75, 0.95, 0.99, 0.999};
+    std::vector<double> quantiles3(Q3, Q3 + sizeof(Q3) / sizeof(double));    
 
     std::default_random_engine generator(1);
     std::normal_distribution<double> norm(60.0, 10.0);
     std::lognormal_distribution<double> lognorm(0.0, 1.0);
 
-    run_perf_test(100, quantiles);
-    run_perf_test(1000, quantiles);
-    run_perf_test(10000, quantiles);
-    run_perf_test(50000, quantiles);
+    std::vector<PerfReportItem> report;
+
+    run_perf_test(report, 100, quantiles);
+    run_perf_test(report, 1000, quantiles2);
+    run_perf_test(report, 10000, quantiles3);
+    run_perf_test(report, 50000, quantiles3);
+
+    printf("Final report: %d\n", report.size());
+    printf(" distribution       algo    samples       rmse   item(ns)\n");
+    for (auto it=report.begin(); it!=report.end(); ++it) {
+        printf(" %12s %10s %10d %10.4f %10.2f\n", it->distribution_.c_str(), it->algorythm_.c_str(), it->samples_, it->RMSE_, it->time_stat_);
+    }
+
+    printf("Done.\n");
 
     return 0;
 }

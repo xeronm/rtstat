@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2019 <copyright holders>
+Copyright (c) 2019 Denis Muratov <xeronm@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -69,20 +69,20 @@ inline void P2::Marker::adjust(P2::Marker& prev, P2::Marker& next) {
 void P2::describe(FILE * f) 
 {
     fprintf(f, "quantiles: %d - ", qcount_);
-    for (std::vector<double>::iterator it=quantiles_.begin(); it!=quantiles_.end(); ++it) {
+    for (auto it=quantiles_.begin(); it!=quantiles_.end(); ++it) {
         fprintf(f, " %0.5f", *it);
     }
-    fprintf(f, "\nmarkers: %d\n        pos     height    qantile\n", marker_count_);
-    uint8_t i = 0;
-    for (std::vector<Marker>::iterator it=markers_.begin(); it!=markers_.end(); ++it, ++i) {
-        if ((i % 2 == 0) && (i > 0) && (i < marker_count_ - 1) ) {
+    fprintf(f, "\nmarkers: %d, min:%10.4f, max:%10.4f\n        pos     height    qantile\n", markerCount_, markers_.front().position, markers_.back().position);
+    unsigned char i = 0;
+    for (auto it=markers_.begin(); it!=markers_.end(); ++it, ++i) {
+        if ((i % 2 == 0) && (i > 0) && (i < markerCount_ - 1) ) {
             fprintf(f, " %10.4f %10.4f %10.4f\n", it->position, it->height, quantiles_[i/2 - 1]);
         } 
         else {
             if (i == 0) {
                 fprintf(f, " %10.4f %10.4f     min\n", it->position, it->height);
             }
-            else if (i == marker_count_ - 1) {
+            else if (i == markerCount_ - 1) {
                 fprintf(f, " %10.4f %10.4f     max\n", it->position, it->height);
             }
             else {
@@ -103,7 +103,7 @@ void P2::initialize()
     size_t i = 1;
     double leftIncrement = 0;
     double rightIncrement = 0;
-    for (std::vector<Marker>::iterator it=markers_.begin(); it!=markers_.end(); ++it, ++i) {
+    for (auto it=markers_.begin(); it!=markers_.end(); ++it, ++i) {
         double increment = 0;
         if ((i % 2) == 0) {
             // even marker                                  
@@ -136,29 +136,35 @@ void P2::add(double val)
     }
 
     // Stage B. Add observations
-    std::vector<Marker>::iterator K = std::lower_bound (markers_.begin(), markers_.end(), val,
-        [](const P2::Marker& a, const double b) { 
-            return a.height < b; 
+    auto K = std::upper_bound (markers_.begin(), markers_.end(), val,
+        [](const double a, const P2::Marker& b) { 
+            return a < b.height; 
         }
     );
     size_t k_index = (K - markers_.begin());
-    if (K == markers_.begin()) {
+    if (k_index == 0) {
         // set MIN marker
         markers_[0].height = val;
+        ++k_index;
     }
-    else if (K == markers_.end()) {
+    else if (k_index == markerCount_) {
         // set MAX marker
-        markers_[marker_count_-1].height = val;
-        --k_index;
+        markers_[markerCount_-1].height = val;
     }
-
 
     P2::Marker* prev = &markers_[0];
     P2::Marker* curr = &markers_[1];
-    for (size_t i=2; i<marker_count_; ++i) {
+    for (size_t i=2; i<markerCount_; ++i) {
         P2::Marker* next = &markers_[i];
 
-        curr->incrementPositions(i > k_index);
+        // According to B.1-2 
+        //    curr marker index 
+        //       ci = (i - 1)
+        //    actual position must incremeted only if 
+        //       ci >= k + 1
+        //    because of upper_bounds
+        //       k_index = k + 1
+        curr->incrementPositions(i > k_index); 
         curr->adjust(*prev, *next);
 
         prev = curr;
@@ -168,29 +174,32 @@ void P2::add(double val)
 
 };    
 
-const bool P2::valid() {
+bool P2::valid() const 
+{
     return (valuesLeftForInit_ == 0);
 }
 
-const double P2::quantile(uint8_t qindex) {
+double P2::quantile(unsigned char qindex) const 
+{
     if ((qindex < 0) || (qindex > qcount_)) {
         return 0;
     }
     return markers_[qindex*2 + 2].height;
 }
 
-const double P2::min()
+double P2::min() const
 {
     return markers_[0].height;
 };
 
-const double P2::max() 
+double P2::max() const
 {
-    return markers_[marker_count_].height;
+    return markers_[markerCount_].height;
 };
 
-const double P2::count() {
-    return markers_[marker_count_].position;
+double P2::count() const
+{
+    return markers_[markerCount_].position;
 };
 
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2019 <copyright holders>
+Copyright (c) 2019 Denis Muratov <xeronm@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@ SOFTWARE.
 
 #pragma once
 
-#include <stdio.h>
 #include <vector>
 
 namespace rtstat
@@ -32,49 +31,50 @@ namespace rtstat
 
 class P2
 {
-public:
-    explicit P2(std::vector<double> quantiles)
-        : quantiles_(std::vector<double>(quantiles))
-    {
-        std:sort(quantiles_.begin(), quantiles_.end());
-        qcount_ = quantiles.size();
-        marker_count_ = qcount_*2 + 3;
-        valuesLeftForInit_ = marker_count_;
-        markers_ = std::vector<Marker>(marker_count_);
-    };
-
-    void add(double val);
-    const bool valid(); // return true if estimation is valid
-    const double quantile(uint8_t qindex);
-    const double min();
-    const double max();
-    const double count(); // observations count
-
-    void describe(FILE * f);
-private:
-    class Marker
-    {
     public:
-        explicit Marker()
-            : position(0.0), height(0.0), increment(0.0), desiredPosition(0.0) {};
+        explicit P2(std::vector<double> quantiles)
+            : quantiles_(std::vector<double>(quantiles))
+        {
+            std:sort(quantiles_.begin(), quantiles_.end());
+            qcount_ = quantiles.size();
+            markerCount_ = qcount_*2 + 3;
+            valuesLeftForInit_ = markerCount_;
+            markers_ = std::vector<Marker>(markerCount_);
+        };
 
-        inline void init(); // Stage A
-        inline void incrementPositions(bool actual); // Stage B.3        
-        inline void adjust(Marker& prev, Marker& next); // Stage B.4
+        void add(double val);
+        bool valid() const; // return true if estimation is valid
+        double quantile(unsigned char qindex) const;
+        double min() const;
+        double max() const;
+        double count() const; // observations count
 
-        double height; // Estimated quantile value (qi)
-        double position; // Marker position (ni)
-        double desiredPosition; // Desired marker position (di)
-        double increment; // Marker position increment (fi)
-    };
+        void describe(FILE * f);
 
-    std::vector<Marker> markers_;
-    std::vector<double> quantiles_;
-    size_t valuesLeftForInit_; // Observation values left for initialization
-    uint8_t qcount_; // Quantiles count for estimate
-    uint8_t marker_count_; // Markers count
+    private:
+        class Marker
+        {
+            public:
+                explicit Marker()
+                    : position(0.0), height(0.0), increment(0.0), desiredPosition(0.0) {};
 
-    void initialize();
+            inline void init(); // Stage A
+            inline void incrementPositions(bool actual); // Stage B.3        
+            inline void adjust(Marker& prev, Marker& next); // Stage B.4
+
+            double height; // Estimated quantile value (qi)
+            double position; // Marker position (ni)
+            double desiredPosition; // Desired marker position (di)
+            double increment; // Marker position increment (fi)
+        };
+
+        void initialize();
+
+        std::vector<Marker> markers_;
+        std::vector<double> quantiles_;
+        size_t valuesLeftForInit_; // Observation values left for initialization
+        unsigned char qcount_; // Quantiles count for estimate
+        unsigned char markerCount_; // Markers count
 };
 
 } // namespace rtstat
