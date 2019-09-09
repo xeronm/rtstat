@@ -63,7 +63,7 @@ Ordinary statistics RMSE: 0.007599
 
 ### 3.1.2. T-digest
 
-The scaling function different from original paper is used (borrowed from implementation of [folly](https://github.com/facebook/folly) T-digest)
+The scaling function differs from original paper is used (borrowed from implementation of [folly](https://github.com/facebook/folly) T-digest)
 
 ![T-digest Scaling Functions](./tdigest/ScalingFunction.png "T-digest Scaling Functions")
 
