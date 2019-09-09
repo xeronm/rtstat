@@ -32,7 +32,7 @@ SOFTWARE.
 #include "p2/p2.hpp"
 #include "tdigest/tdigest.hpp"
 
-#define SAMLPE_PASS_COUNT 10
+#define SAMLPE_PASS_COUNT 5
 
 class PerfReportItem {
     public:
@@ -121,11 +121,17 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
     std::default_random_engine generator(1);
     std::normal_distribution<double> norm(60.0, 10.0);
     std::lognormal_distribution<double> lognorm(0.0, 0.3);
+    std::normal_distribution<double> norm2(15.0, 3.0);
 
     std::vector<double> sample_n(samples);
     std::generate(sample_n.begin(), sample_n.end(), [&norm, &generator]() { return norm(generator); } );
     std::vector<double> sample_ln(samples);
     std::generate(sample_ln.begin(), sample_ln.end(), [&lognorm, &generator]() { return lognorm(generator)*10+50; } );
+
+    std::vector<double> sample_n2(ceil(samples*0.45));
+    std::generate(sample_n2.begin(), sample_n2.end(), [&norm2, &generator]() { return norm2(generator); } );
+    sample_n2.insert(sample_n2.end(), sample_n.begin(), sample_n.begin() + ceil(samples*0.55));
+    std::shuffle(sample_n2.begin(), sample_n2.end(), generator);
 
     double rmse;
     double time_stat;
@@ -160,6 +166,23 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
         run_perf_test_tdigest(sample_ln, quantiles, &rmse, &time_stat);
     }
     report.push_back(PerfReportItem("Log-normal", "T-digest", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
+
+
+    printf("\n\n=============\n");
+    printf("Distribution: Normal-2\nSamples: %d\n", samples*2);
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_p2(sample_n2, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Normal-2", "P^2", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
+
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_tdigest(sample_n2, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Normal-2", "T-digest", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 }
 
 int main (int argc, char *argv[])
@@ -173,17 +196,13 @@ int main (int argc, char *argv[])
     double Q3[] = {0.25, 0.5, 0.75, 0.95, 0.99, 0.999};
     std::vector<double> quantiles3(Q3, Q3 + sizeof(Q3) / sizeof(double));    
 
-    std::default_random_engine generator(1);
-    std::normal_distribution<double> norm(60.0, 10.0);
-    std::lognormal_distribution<double> lognorm(0.0, 1.0);
-
     std::vector<PerfReportItem> report;
 
     run_perf_test(report, 100, quantiles);
     run_perf_test(report, 1000, quantiles2);
     run_perf_test(report, 10000, quantiles3);
     run_perf_test(report, 50000, quantiles3);
-    run_perf_test(report, 100000, quantiles3);
+    //run_perf_test(report, 100000, quantiles3);
 
     printf("Final report: %d\n", report.size());
     printf(" distribution       algo    samples       rmse   item(ns)\n");
