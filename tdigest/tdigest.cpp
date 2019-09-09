@@ -92,7 +92,6 @@ double TDigest::weightLeft(size_t index) const
 
 inline void TDigest::clusteringAdd(double value, double weight) 
 {
-    //printf("add %f, %f\n", value, weight);
     if (centroidCount_ == 0) {
         min_ = value;
         max_ = value;
@@ -137,26 +136,23 @@ inline void TDigest::clusteringAdd(double value, double weight)
     // Check size bounds
     //      "This set is reduced by retaining only centroids whose k-size after adding wn would meet the size bound."
     double wl = (Z_index > 0) ? weightLeft(Z_index-1) : 0;
-    //printf("    val=%f: zi=%d, wl=%f  tw=%f - %d, %p, %p\n", value, Z_index, wl, totalWeight_, centroidCount_, left, right);
 
     totalWeight_ += weight;
     if (left) {
         double k0 = scalingK(wl/totalWeight_, delta_);
         wl += left->weight();
-        //printf("        left bounds:%f, %f  wl:%f\n", k0, scalingK((wl + weight)/totalWeight_, delta_), wl);
         if (scalingK((wl + weight)/totalWeight_, delta_) >= k0 + 1) {
             left = NULL;
         }
     }
     if (right) {
         double k1 = scalingK(wl/totalWeight_, delta_);
-        //printf("        left bounds:%f, %f\n", k1, scalingK((wl + right->weight() + weight)/totalWeight_, delta_) );
         if (scalingK((wl + right->weight() + weight)/totalWeight_, delta_) >= k1 + 1) {
             right = NULL;
         }
     }
     //      "If more than one centroid remains, the one with maximum weight is selected."
-    if (left && (!right || (left->weight() < right->weight()))) {
+    if (left && (!right || (left->weight() >= right->weight()))) {
         left->add(value, weight);
     } 
     else if (right) {
@@ -164,7 +160,6 @@ inline void TDigest::clusteringAdd(double value, double weight)
     }
     else {
         // insert new centorid
-        //printf("insert new: %d/%d\n", Z_index, centroidCount_);
         for (size_t i=centroidCount_; i>Z_index; --i) {
             centroids_[i].set(centroids_[i-1]);
         }
@@ -179,7 +174,6 @@ inline void TDigest::clusteringAdd(double value, double weight)
 
 void TDigest::shrink() 
 {        
-    //printf("-->>> shrink: %d %f\n", centroidCount_, totalWeight_);
     double qlimit = scalingKInverse(1, delta_);
     double weight = centroids_[0].weight();
     double value = centroids_[0].value();
@@ -205,8 +199,6 @@ void TDigest::shrink()
     }
     centroids_[newCentroidCount].set(value, weight);
     centroidCount_ = newCentroidCount + 1;
-
-    //printf("-->>> shrink: %d %f\n", centroidCount_, totalWeight_);
 }
 
 double TDigest::quantile(double q) const 
@@ -246,8 +238,6 @@ double TDigest::quantile(double q) const
             t += centroids_[i].weight();
         }
     }
-
-    //printf("q:%f, pos:%d\n", q, pos);
 
     double delta = 0;
     double min = min_;
