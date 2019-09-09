@@ -41,10 +41,9 @@ inline void P2::Marker::adjust(P2::Marker& prev, P2::Marker& next) {
     double dp = next.position - position;
     double dm = prev.position - position;
 
-    double qp = (next.height - height)/dp;
-    double qm = (prev.height - height)/dm;
-
     if ((d >= 1) && (dp > 1)) {
+        double qp = (next.height - height)/dp;
+        double qm = (prev.height - height)/dm;
         double qt = height + ((1 - dm)*qp + (dp - 1)*qm)/(dp - dm);
         if ((qt > prev.height) && (qt < next.height)) {
             height = qt;
@@ -55,6 +54,8 @@ inline void P2::Marker::adjust(P2::Marker& prev, P2::Marker& next) {
         ++position;
     }
     else if ((d <= -1) && (dm < -1)) {
+        double qp = (next.height - height)/dp;
+        double qm = (prev.height - height)/dm;
         double qt = height - ((1 + dp)*qm - (dm + 1)*qp)/(dp - dm);
         if ((qt > prev.height) && (qt < next.height)) {
             height = qt;
