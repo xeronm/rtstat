@@ -28,7 +28,10 @@ For test we used three different distribution:
 - Log-normal
 - Concatenation of two normal with rates 45:55
 
-![Distributions CDF, PDF](/TestCDF_PDF.png "Distributions CDF, PDF")
+![Distributions CDF, PDF](./TestCDF_PDF.png "Distributions CDF, PDF")
+
+Overall table:
+
 
 #### 3.1.1. Extended P-Sqared
 
@@ -59,6 +62,10 @@ Log-normal Distribution: 10k samples
 Ordinary statistics RMSE: 0.007599
 
 ### 3.1.2. T-digest
+
+The scaling function different from original paper is used (borrowed from implementation of [folly](https://github.com/facebook/folly) T-digest)
+
+![T-digest Scaling Functions](./tdigest/ScalingFunction.png "T-digest Scaling Functions")
 
 Clustering algorithm with delta=30, K=3
 
