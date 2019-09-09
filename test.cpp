@@ -183,6 +183,7 @@ int main (int argc, char *argv[])
     run_perf_test(report, 1000, quantiles2);
     run_perf_test(report, 10000, quantiles3);
     run_perf_test(report, 50000, quantiles3);
+    run_perf_test(report, 100000, quantiles3);
 
     printf("Final report: %d\n", report.size());
     printf(" distribution       algo    samples       rmse   item(ns)\n");

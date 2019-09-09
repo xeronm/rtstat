@@ -1,6 +1,6 @@
 RT-Stat
 =======
-Set of algorithms used for streaming data statistic characteristics estimation.
+Set of algorithms, used for estimation statistic characteristics on streaming data.
 
 License: MIT
 
