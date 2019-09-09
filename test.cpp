@@ -32,6 +32,8 @@ SOFTWARE.
 #include "p2/p2.hpp"
 #include "tdigest/tdigest.hpp"
 
+#define SAMLPE_PASS_COUNT 10
+
 class PerfReportItem {
     public:
         PerfReportItem(const char* distribution, const char* algorythm, size_t samples, double RMSE, double time_stat)
@@ -56,7 +58,7 @@ void run_perf_test_p2(std::vector<double> set, std::vector<double> quantiles, do
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
     std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
-    *time_stat = per_ns.count();
+    *time_stat += per_ns.count();
     printf("time spent (sec): %f, peritem (ns): %0.2f\n", diff, per_ns);
 
     //p2.describe(stdout);
@@ -91,7 +93,7 @@ void run_perf_test_tdigest(std::vector<double> set, std::vector<double> quantile
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
     std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
-    *time_stat = per_ns.count();
+    *time_stat += per_ns.count();
     printf("time spent (sec): %f, peritem (ns): %0.2f\n", diff, per_ns);
 
     //td.describe(stdout);
@@ -129,17 +131,35 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
     double time_stat;
     printf("\n\n=============\n");
     printf("Distribution: Normal\nSamples: %d\n", samples);
-    run_perf_test_p2(sample_n, quantiles, &rmse, &time_stat);
-    report.push_back(PerfReportItem("Normal", "P^2", samples, rmse, time_stat));
-    run_perf_test_tdigest(sample_n, quantiles, &rmse, &time_stat);
-    report.push_back(PerfReportItem("Normal", "T-digest", samples, rmse, time_stat));
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_p2(sample_n, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Normal", "P^2", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
+
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_tdigest(sample_n, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Normal", "T-digest", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 
     printf("=============\n");
     printf("Distribution: Log-normal\nSamples: %d\n", samples);
-    run_perf_test_p2(sample_ln, quantiles, &rmse, &time_stat);
-    report.push_back(PerfReportItem("Log-normal", "P^2", samples, rmse, time_stat));
-    run_perf_test_tdigest(sample_ln, quantiles, &rmse, &time_stat);
-    report.push_back(PerfReportItem("Log-normal", "T-digest", samples, rmse, time_stat));
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_p2(sample_ln, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Log-normal", "P^2", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
+
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_tdigest(sample_ln, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Log-normal", "T-digest", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 }
 
 int main (int argc, char *argv[])
