@@ -18,3 +18,11 @@ License: MIT
 ## 2. Requirements
 
 CMake >= 3.1
+
+## 3. List of algorithm
+
+### 3.1. Extended P-Sqared 
+
+### 3.2. T-digest
+
+
