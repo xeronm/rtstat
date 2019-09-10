@@ -180,7 +180,7 @@ void TDigest::shrink()
     
     double qleft = 0;
     size_t newCentroidCount = 0;
-    for (size_t i=0; i < centroidCount_; ++i) {
+    for (size_t i=1; i < centroidCount_; ++i) {        
         double wi = centroids_[i].weight();
         double vi = centroids_[i].value();
         double q = qleft + (weight + wi)/totalWeight_;
