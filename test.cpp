@@ -214,6 +214,12 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
     }
     report.push_back(PerfReportItem("Log-normal", "T-digest", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_tdigest_merge(sample_ln, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Log-normal", "T-digest(M)", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 
     printf("\n\n=============\n");
     printf("Distribution: Normal-2\nSamples: %d\n", samples*2);
@@ -230,6 +236,14 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
         run_perf_test_tdigest(sample_n2, quantiles, &rmse, &time_stat);
     }
     report.push_back(PerfReportItem("Normal-2", "T-digest", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
+
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_tdigest_merge(sample_n2, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Normal-2", "T-digest(M)", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
+
 }
 
 int main (int argc, char *argv[])
