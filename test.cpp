@@ -122,17 +122,18 @@ void run_perf_test_tdigest_merge(std::vector<double> set, std::vector<double> qu
 
     printf("== T-digest (M) =======\n");
 
-    size_t batch_size = std::min(200, int (set.end()-set.begin()));
+    std::vector<double> set2(set.begin(), set.end());
+
+    size_t batch_size = std::min(200, int (set2.end()-set2.begin()));
     auto start = std::chrono::high_resolution_clock::now();
-    for (auto it=set.begin(); it<set.end(); it+=batch_size) {
+    for (auto it=set2.begin(); it<set2.end(); it+=batch_size) {
+        batch_size = std::min(batch_size, size_t (set2.end()-it));
         std::sort(it, it + batch_size);
         td.merge(it, it + batch_size);
-
-        batch_size = std::min(batch_size, size_t (set.end()-it));
     } 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
-    std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
+    std::chrono::duration<double, std::nano> per_ns = (end - start)/set2.size();
     *time_stat += per_ns.count();
     printf("time spent (sec): %f, peritem (ns): %0.2f\n", diff, per_ns);
 
@@ -176,7 +177,7 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
     double rmse;
     double time_stat;
     printf("\n\n=============\n");
-    printf("Distribution: Normal\nSamples: %d\n", samples);
+    printf("Distribution: Normal\nSamples: %d\n", sample_n.size());
     rmse = 0;
     time_stat = 0;
     for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
@@ -199,7 +200,7 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
     report.push_back(PerfReportItem("Normal", "T-digest(M)", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 
     printf("=============\n");
-    printf("Distribution: Log-normal\nSamples: %d\n", samples);
+    printf("Distribution: Log-normal\nSamples: %d\n", sample_ln.size());
     rmse = 0;
     time_stat = 0;
     for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
@@ -222,7 +223,7 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
     report.push_back(PerfReportItem("Log-normal", "T-digest(M)", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 
     printf("\n\n=============\n");
-    printf("Distribution: Normal-2\nSamples: %d\n", samples*2);
+    printf("Distribution: Normal-2\nSamples: %d\n", sample_n2.size());
     rmse = 0;
     time_stat = 0;
     for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {

@@ -312,6 +312,8 @@ size_t TDigest::merge(std::vector<double>::iterator begin, std::vector<double>::
     }    
     centroids_[newCentroidCount].set(value, weight);
     centroidCount_ = newCentroidCount + 1;
+
+    return addEnd - begin;
 }
 
 void TDigest::shrink() 
