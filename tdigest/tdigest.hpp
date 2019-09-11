@@ -59,7 +59,7 @@ class TDigest
         explicit TDigest(size_t delta = 100, size_t excessiveGrowthPCT = 150)
             // excessive growth factor in hundreds - maxSize = delta + delta*excessiveGrowth/100
             : delta_(delta), excessiveGrowthPCT_(excessiveGrowthPCT), min_(0.0), max_(0.0),
-            centroidCount_(0), totalWeight_(0.0), centroids_(delta + delta*excessiveGrowthPCT/100) {};
+            centroidCount_(0), totalWeight_(0.0), centroids_(delta + delta*excessiveGrowthPCT/100 + 2) {};
 
         size_t merge(TDigest digest);
         // merging sorted values into T-digest, return count of merged values

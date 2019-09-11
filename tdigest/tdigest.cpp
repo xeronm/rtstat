@@ -195,6 +195,7 @@ size_t TDigest::merge(TDigest digest)
     weight = (*least)->weight();
     value = (*least)->value();
     ++(*least);
+    min_ = value;
     
     double qleft = 0;
     size_t newCentroidCount = 0;
@@ -213,6 +214,7 @@ size_t TDigest::merge(TDigest digest)
             least = &it;
         }
         else {
+            max_ = value;
             break;
         }
 
@@ -265,6 +267,7 @@ size_t TDigest::merge(std::vector<double>::iterator begin, std::vector<double>::
     else {
         weight = it->weight(); value = it->value(); ++it;
     }
+    min_ = value;
 
     double qlimit = scalingKInverse(1, delta_);
     double qleft = 0;
@@ -289,6 +292,7 @@ size_t TDigest::merge(std::vector<double>::iterator begin, std::vector<double>::
             wi = it->weight(); vi = it->value(); ++it;
         }
         else {
+            max_ = value;
             break;
         }
 
@@ -305,7 +309,7 @@ size_t TDigest::merge(std::vector<double>::iterator begin, std::vector<double>::
             weight = wi;
             value = vi;
         }
-    }
+    }    
     centroids_[newCentroidCount].set(value, weight);
     centroidCount_ = newCentroidCount + 1;
 }

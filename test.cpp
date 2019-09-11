@@ -118,15 +118,17 @@ void run_perf_test_tdigest(std::vector<double> set, std::vector<double> quantile
 
 void run_perf_test_tdigest_merge(std::vector<double> set, std::vector<double> quantiles, double* msre, double* time_stat) 
 {
-    rtstat::TDigest td(50, 200);
+    rtstat::TDigest td(100, 100);
 
     printf("== T-digest (M) =======\n");
 
-    const size_t batch_size = 50; // efficient std sort size
+    size_t batch_size = std::min(200, int (set.end()-set.begin()));
     auto start = std::chrono::high_resolution_clock::now();
     for (auto it=set.begin(); it<set.end(); it+=batch_size) {
         std::sort(it, it + batch_size);
         td.merge(it, it + batch_size);
+
+        batch_size = std::min(batch_size, size_t (set.end()-it));
     } 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
