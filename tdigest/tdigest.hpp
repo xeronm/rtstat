@@ -61,7 +61,10 @@ class TDigest
             : delta_(delta), excessiveGrowthPCT_(excessiveGrowthPCT), min_(0.0), max_(0.0),
             centroidCount_(0), totalWeight_(0.0), centroids_(delta + delta*excessiveGrowthPCT/100) {};
 
-        void merge(std::vector<WeightedPoint> values); // merging unsorted values into T-digest
+        size_t merge(TDigest digest);
+        // merging sorted values into T-digest, return count of merged values
+        size_t merge(std::vector<double>::iterator begin, std::vector<double>::iterator end);
+
         void shrink(); // shrink T-digest to target compress factor
 
         void add(std::vector<WeightedPoint> values); // add unsorted observation values into T-digest using clustering algorythm

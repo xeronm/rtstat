@@ -172,6 +172,144 @@ inline void TDigest::clusteringAdd(double value, double weight)
     }
 }
 
+// merging sorted values into T-digest, return count of merged values
+size_t TDigest::merge(TDigest digest)
+{
+    if (digest.centroidCount_ == 0) {
+        return 0;
+    }
+
+    double value = 0;
+    double weight = 0;
+
+    totalWeight_ += digest.totalWeight_;
+
+    std::vector<TDigest::WeightedPoint> oldCentroids(centroids_.begin(), centroids_.begin() + centroidCount_);
+    auto it = oldCentroids.begin(); 
+    auto itAdd = digest.centroids_.begin();
+    auto addEnd = digest.centroids_.begin() + digest.centroidCount_; 
+    std::vector<TDigest::WeightedPoint>::iterator* least = ((centroidCount_ == 0) || (itAdd->value() < it->value())) ? &itAdd : &it;
+
+    double qlimit = scalingKInverse(1, delta_);
+
+    weight = (*least)->weight();
+    value = (*least)->value();
+    ++(*least);
+    
+    double qleft = 0;
+    size_t newCentroidCount = 0;
+    while (true) {
+        double wi;
+        double vi;
+        if (itAdd != addEnd) {
+            if (it != oldCentroids.end()) {
+                least = (itAdd->value() < it->value()) ? &itAdd : &it;
+            } 
+            else {
+                least = &itAdd;
+            }
+        }
+        else if (it != oldCentroids.end()) {
+            least = &it;
+        }
+        else {
+            break;
+        }
+
+        wi = (*least)->weight();
+        vi = (*least)->value();
+        ++(*least);        
+
+        double q = qleft + (weight + wi)/totalWeight_;
+        if (q <= qlimit) {
+            weight += wi;
+            value += wi*(vi - value)/weight;
+        }
+        else {
+            centroids_[newCentroidCount].set(value, weight);
+            qleft += weight/totalWeight_;
+            ++newCentroidCount;
+            qlimit = scalingKInverse(newCentroidCount + 1, delta_);
+            weight = wi;
+            value = vi;
+        }
+    }
+    centroids_[newCentroidCount].set(value, weight);
+    centroidCount_ = newCentroidCount + 1;
+}
+
+// merging sorted values into T-digest, return count of merged values
+size_t TDigest::merge(std::vector<double>::iterator begin, std::vector<double>::iterator end)
+{
+    if (begin == end) {
+        return 0;
+    }
+
+    double value = 0;
+    double weight = 0;
+
+    // if vector is unsorted we stop earlier
+    std::vector<double>::iterator addEnd=begin;
+    while ((addEnd!=end) && (value <= *addEnd)) {
+        value = *addEnd;
+        ++addEnd;
+    }
+    totalWeight_ += addEnd - begin;
+
+    std::vector<TDigest::WeightedPoint> oldCentroids(centroids_.begin(), centroids_.begin() + centroidCount_);
+    auto it = oldCentroids.begin(); 
+    std::vector<double>::iterator itAdd = begin; 
+    if ((centroidCount_ == 0) || (*itAdd < it->value())) {
+        weight = 1; value = *itAdd; ++itAdd;
+    }
+    else {
+        weight = it->weight(); value = it->value(); ++it;
+    }
+
+    double qlimit = scalingKInverse(1, delta_);
+    double qleft = 0;
+    size_t newCentroidCount = 0;
+    while (true) {
+        double wi;
+        double vi;
+        if (itAdd != addEnd) {
+            if (it != oldCentroids.end()) {
+                if (*itAdd < it->value()) {
+                    wi = 1; vi = *itAdd; ++itAdd;
+                }
+                else {
+                    wi = it->weight(); vi = it->value(); ++it;
+                }
+            } 
+            else {
+                wi = 1; vi = *itAdd; ++itAdd;
+            }
+        }
+        else if (it != oldCentroids.end()) {
+            wi = it->weight(); vi = it->value(); ++it;
+        }
+        else {
+            break;
+        }
+
+        double q = qleft + (weight + wi)/totalWeight_;
+        if (q <= qlimit) {
+            weight += wi;
+            value += wi*(vi - value)/weight;
+        }
+        else {
+            centroids_[newCentroidCount].set(value, weight);
+            qleft += weight/totalWeight_;
+            ++newCentroidCount;
+            qlimit = scalingKInverse(newCentroidCount + 1, delta_);
+            weight = wi;
+            value = vi;
+        }
+    }
+    centroids_[newCentroidCount].set(value, weight);
+    centroidCount_ = newCentroidCount + 1;
+}
+
 void TDigest::shrink() 
 {        
     double qlimit = scalingKInverse(1, delta_);

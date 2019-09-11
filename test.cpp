@@ -116,6 +116,44 @@ void run_perf_test_tdigest(std::vector<double> set, std::vector<double> quantile
     printf("== T-digest ===========\n\n");
 }
 
+void run_perf_test_tdigest_merge(std::vector<double> set, std::vector<double> quantiles, double* msre, double* time_stat) 
+{
+    rtstat::TDigest td(50, 200);
+
+    printf("== T-digest (M) =======\n");
+
+    const size_t batch_size = 50; // efficient std sort size
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto it=set.begin(); it<set.end(); it+=batch_size) {
+        std::sort(it, it + batch_size);
+        td.merge(it, it + batch_size);
+    } 
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = end - start;
+    std::chrono::duration<double, std::nano> per_ns = (end - start)/set.size();
+    *time_stat += per_ns.count();
+    printf("time spent (sec): %f, peritem (ns): %0.2f\n", diff, per_ns);
+
+    //td.describe(stdout);
+    printf("=============\n");
+
+    std::vector<double> sset(set);
+    std::sort(sset.begin(), sset.end());
+    double mse = 0;
+    printf("   quantile          O   T-digest\n");
+    for (auto it=quantiles.begin(); it!=quantiles.end(); ++it) {
+        double qp = td.quantile(*it);
+        double qo = sset[(size_t) (sset.size()**it)];
+        mse += (qp -  qo)*(qp -  qo);
+        printf(" %10.4f %10.4f %10.4f\n", *it, qo, qp );
+    } 
+
+    *msre = mse/quantiles.size();
+    printf("RMSE: %f\n", *msre);
+
+    printf("== T-digest (M) =======\n\n");
+}
+
 void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vector<double> quantiles) 
 {
     std::default_random_engine generator(1);
@@ -150,6 +188,13 @@ void run_perf_test(std::vector<PerfReportItem>& report, size_t samples, std::vec
         run_perf_test_tdigest(sample_n, quantiles, &rmse, &time_stat);
     }
     report.push_back(PerfReportItem("Normal", "T-digest", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
+
+    rmse = 0;
+    time_stat = 0;
+    for (size_t i=0; i<SAMLPE_PASS_COUNT; ++i) {
+        run_perf_test_tdigest_merge(sample_n, quantiles, &rmse, &time_stat);
+    }
+    report.push_back(PerfReportItem("Normal", "T-digest(M)", samples, rmse, time_stat/SAMLPE_PASS_COUNT));
 
     printf("=============\n");
     printf("Distribution: Log-normal\nSamples: %d\n", samples);
@@ -205,9 +250,9 @@ int main (int argc, char *argv[])
     //run_perf_test(report, 100000, quantiles3);
 
     printf("Final report: %d\n", report.size());
-    printf(" distribution       algo    samples       rmse   item(ns)\n");
+    printf(" distribution         algo    samples       rmse   item(ns)\n");
     for (auto it=report.begin(); it!=report.end(); ++it) {
-        printf(" %12s %10s %10d %10.4f %10.2f\n", it->distribution_.c_str(), it->algorythm_.c_str(), it->samples_, it->RMSE_, it->time_stat_);
+        printf(" %12s %12s %10d %10.4f %10.2f\n", it->distribution_.c_str(), it->algorythm_.c_str(), it->samples_, it->RMSE_, it->time_stat_);
     }
 
     printf("Done.\n");
